@@ -1,0 +1,836 @@
+Codigo Final “Inventario de Embotellado completo con 15 funciones” 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 100
+
+typedef struct {
+    int codigo;
+    char nombre[50];
+    int cantidad;
+    char lote[20];
+    float precio;
+    int vendidos;
+} Producto;
+
+Producto productos[MAX];
+int totalProductos = 0;
+
+void encabezado(char titulo[]);
+void menuBienvenida();
+void menuInventario();
+void registrarProducto();
+void mostrarProductos();
+void buscarProducto();
+void actualizarProducto();
+void eliminarProducto();
+void reporteInventario();
+void venderProducto();
+void guardarArchivo();
+void cargarArchivo();
+void crearBackup();
+void ordenarCodigo();
+void ordenarNombre();
+void ordenarPrecio();
+void mostrarStockBajo();
+void productoMasVendido();
+void exportarReporte();
+void informacionSistema();
+void pausa();
+int preguntarSiNo(char mensaje[]);
+
+int existeCodigo(int codigo);
+int buscarIndice(int codigo);
+int contarProductos();
+
+int main() {
+    cargarArchivo();
+    menuBienvenida();
+    return 0;
+}
+
+void encabezado(char titulo[]) {
+    system("cls");
+    printf("==============================================================\n");
+    printf("        SISTEMA DE INVENTARIO - EMBOTELLADORA\n");
+    printf("==============================================================\n");
+    printf("%s\n", titulo);
+    printf("==============================================================\n\n");
+}
+
+void limpiarBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF) {
+    }
+}
+
+void pausa() {
+    printf("\nPresione ENTER para continuar...");
+    limpiarBuffer();
+    getchar();
+}
+
+int preguntarSiNo(char mensaje[]) {
+    char respuesta;
+
+    do {
+        printf("\n%s (S/N): ", mensaje);
+        scanf(" %c", &respuesta);
+
+        if (respuesta == 'S' || respuesta == 's') {
+            return 1;
+        }
+
+        if (respuesta == 'N' || respuesta == 'n') {
+            return 0;
+        }
+
+        printf("Respuesta invalida. Escriba S para si o N para no.\n");
+    } while (1);
+}
+
+void menuBienvenida() {
+    int opcion;
+
+    do {
+        encabezado("MENU PRINCIPAL");
+        printf("1. Iniciar sistema\n");
+        printf("2. Salir\n");
+        printf("\nSeleccione una opcion: ");
+
+        if (scanf("%d", &opcion) != 1) {
+            limpiarBuffer();
+            opcion = 0;
+        }
+
+        switch (opcion) {
+        case 1:
+            menuInventario();
+            break;
+        case 2:
+            printf("\nGracias por utilizar el sistema.\n");
+            break;
+        default:
+            printf("\nOpcion invalida.\n");
+            pausa();
+        }
+    } while (opcion != 2);
+}
+
+void menuInventario() {
+    int opcion;
+
+    do {
+        encabezado("MENU DEL INVENTARIO");
+        printf("1. Registrar producto\n");
+        printf("2. Mostrar productos\n");
+        printf("3. Buscar producto\n");
+        printf("4. Actualizar producto\n");
+        printf("5. Eliminar producto\n");
+        printf("6. Venta de productos\n");
+        printf("7. Reporte del inventario\n");
+        printf("8. Ordenar por codigo\n");
+        printf("9. Ordenar por nombre\n");
+        printf("10. Ordenar por precio\n");
+        printf("11. Productos con stock bajo\n");
+        printf("12. Producto mas vendido\n");
+        printf("13. Exportar reporte\n");
+        printf("14. Informacion del sistema\n");
+        printf("15. Regresar\n");
+        printf("\nSeleccione una opcion: ");
+
+        if (scanf("%d", &opcion) != 1) {
+            limpiarBuffer();
+            opcion = 0;
+        }
+
+        switch (opcion) {
+        case 1:
+            do {
+                registrarProducto();
+            } while (preguntarSiNo("Desea registrar otro producto"));
+            break;
+        case 2:
+            mostrarProductos();
+            break;
+        case 3:
+            do {
+                buscarProducto();
+            } while (preguntarSiNo("Desea buscar otro producto"));
+            break;
+        case 4:
+            do {
+                actualizarProducto();
+            } while (preguntarSiNo("Desea actualizar otro producto"));
+            break;
+        case 5:
+            do {
+                eliminarProducto();
+            } while (preguntarSiNo("Desea eliminar otro producto"));
+            break;
+        case 6:
+            do {
+                venderProducto();
+            } while (preguntarSiNo("Desea realizar otra venta"));
+            break;
+        case 7:
+            reporteInventario();
+            break;
+        case 8:
+            ordenarCodigo();
+            guardarArchivo();
+            printf("\nProductos ordenados por codigo.\n");
+            pausa();
+            break;
+        case 9:
+            ordenarNombre();
+            guardarArchivo();
+            printf("\nProductos ordenados por nombre.\n");
+            pausa();
+            break;
+        case 10:
+            ordenarPrecio();
+            guardarArchivo();
+            printf("\nProductos ordenados por precio.\n");
+            pausa();
+            break;
+        case 11:
+            mostrarStockBajo();
+            break;
+        case 12:
+            productoMasVendido();
+            break;
+        case 13:
+            exportarReporte();
+            break;
+        case 14:
+            informacionSistema();
+            break;
+        case 15:
+            break;
+        default:
+            printf("\nOpcion invalida.\n");
+            pausa();
+        }
+    } while (opcion != 15);
+}
+
+int existeCodigo(int codigo) {
+    return buscarIndice(codigo) != -1;
+}
+
+int buscarIndice(int codigo) {
+    int i;
+
+    for (i = 0; i < totalProductos; i++) {
+        if (productos[i].codigo == codigo) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+int contarProductos() {
+    return totalProductos;
+}
+
+void registrarProducto() {
+    encabezado("REGISTRAR PRODUCTO");
+
+    if (totalProductos >= MAX) {
+        printf("El inventario esta lleno.\n");
+        pausa();
+        return;
+    }
+
+    do {
+        printf("Codigo: ");
+        scanf("%d", &productos[totalProductos].codigo);
+
+        if (existeCodigo(productos[totalProductos].codigo)) {
+            printf("Ese codigo ya existe.\n\n");
+        }
+    } while (existeCodigo(productos[totalProductos].codigo));
+
+    limpiarBuffer();
+
+    printf("Nombre: ");
+    fgets(productos[totalProductos].nombre, 50, stdin);
+    productos[totalProductos].nombre[strcspn(productos[totalProductos].nombre, "\n")] = '\0';
+
+    do {
+        printf("Cantidad: ");
+        scanf("%d", &productos[totalProductos].cantidad);
+
+        if (productos[totalProductos].cantidad < 0) {
+            printf("Cantidad invalida.\n");
+        }
+    } while (productos[totalProductos].cantidad < 0);
+
+    limpiarBuffer();
+
+    printf("Lote: ");
+    fgets(productos[totalProductos].lote, 20, stdin);
+    productos[totalProductos].lote[strcspn(productos[totalProductos].lote, "\n")] = '\0';
+
+    do {
+        printf("Precio: ");
+        scanf("%f", &productos[totalProductos].precio);
+
+        if (productos[totalProductos].precio <= 0) {
+            printf("Precio invalido.\n");
+        }
+    } while (productos[totalProductos].precio <= 0);
+
+    productos[totalProductos].vendidos = 0;
+    totalProductos++;
+
+    crearBackup();
+    guardarArchivo();
+
+    printf("\nProducto registrado correctamente.\n");
+    pausa();
+}
+
+void mostrarProductos() {
+    encabezado("LISTA DE PRODUCTOS");
+
+    if (totalProductos == 0) {
+        printf("No existen productos registrados.\n");
+        pausa();
+        return;
+    }
+
+    printf("-------------------------------------------------------------------------------------------------------------\n");
+    printf("%-8s %-25s %-10s %-15s %-10s %-12s %-10s\n",
+           "CODIGO", "NOMBRE", "CANT", "LOTE", "PRECIO", "SUBTOTAL", "VENDIDOS");
+    printf("-------------------------------------------------------------------------------------------------------------\n");
+
+    int i;
+    for (i = 0; i < totalProductos; i++) {
+        float subtotal = productos[i].cantidad * productos[i].precio;
+
+        printf("%-8d %-25s %-10d %-15s $%-10.2f $%-12.2f %-10d\n",
+               productos[i].codigo,
+               productos[i].nombre,
+               productos[i].cantidad,
+               productos[i].lote,
+               productos[i].precio,
+               subtotal,
+               productos[i].vendidos);
+
+        if (productos[i].cantidad < 10) {
+            printf("          *** STOCK BAJO ***\n");
+        }
+    }
+
+    pausa();
+}
+
+void buscarProducto() {
+    int opcion;
+
+    encabezado("BUSCAR PRODUCTO");
+    printf("1. Buscar por codigo\n");
+    printf("2. Buscar por nombre\n");
+    printf("\nSeleccione una opcion: ");
+    scanf("%d", &opcion);
+
+    if (opcion == 1) {
+        int codigo;
+        int indice;
+
+        printf("\nCodigo: ");
+        scanf("%d", &codigo);
+
+        indice = buscarIndice(codigo);
+        if (indice != -1) {
+            printf("\nProducto encontrado\n\n");
+            printf("Codigo   : %d\n", productos[indice].codigo);
+            printf("Nombre   : %s\n", productos[indice].nombre);
+            printf("Cantidad : %d\n", productos[indice].cantidad);
+            printf("Lote     : %s\n", productos[indice].lote);
+            printf("Precio   : %.2f\n", productos[indice].precio);
+            printf("Vendidos : %d\n", productos[indice].vendidos);
+            pausa();
+            return;
+        }
+    } else if (opcion == 2) {
+        char nombre[50];
+        int i;
+
+        limpiarBuffer();
+        printf("\nNombre: ");
+        fgets(nombre, 50, stdin);
+        nombre[strcspn(nombre, "\n")] = '\0';
+
+        for (i = 0; i < totalProductos; i++) {
+            if (strstr(productos[i].nombre, nombre) != NULL) {
+                printf("\nProducto encontrado\n\n");
+                printf("Codigo   : %d\n", productos[i].codigo);
+                printf("Nombre   : %s\n", productos[i].nombre);
+                printf("Cantidad : %d\n", productos[i].cantidad);
+                printf("Lote     : %s\n", productos[i].lote);
+                printf("Precio   : %.2f\n", productos[i].precio);
+                printf("Vendidos : %d\n", productos[i].vendidos);
+                pausa();
+                return;
+            }
+        }
+    }
+
+    printf("\nProducto no encontrado.\n");
+    pausa();
+}
+
+void actualizarProducto() {
+    encabezado("ACTUALIZAR PRODUCTO");
+
+    if (totalProductos == 0) {
+        printf("No existen productos registrados.\n");
+        pausa();
+        return;
+    }
+
+    int codigo;
+    int indice;
+
+    printf("Ingrese el codigo del producto: ");
+    scanf("%d", &codigo);
+
+    indice = buscarIndice(codigo);
+    if (indice == -1) {
+        printf("\nProducto no encontrado.\n");
+        pausa();
+        return;
+    }
+
+    limpiarBuffer();
+    printf("\nProducto encontrado.\n\n");
+
+    printf("Nuevo nombre: ");
+    fgets(productos[indice].nombre, 50, stdin);
+    productos[indice].nombre[strcspn(productos[indice].nombre, "\n")] = '\0';
+
+    do {
+        printf("Nueva cantidad: ");
+        scanf("%d", &productos[indice].cantidad);
+
+        if (productos[indice].cantidad < 0) {
+            printf("Cantidad invalida.\n");
+        }
+    } while (productos[indice].cantidad < 0);
+
+    limpiarBuffer();
+
+    printf("Nuevo lote: ");
+    fgets(productos[indice].lote, 20, stdin);
+    productos[indice].lote[strcspn(productos[indice].lote, "\n")] = '\0';
+
+    do {
+        printf("Nuevo precio: ");
+        scanf("%f", &productos[indice].precio);
+
+        if (productos[indice].precio <= 0) {
+            printf("Precio invalido.\n");
+        }
+    } while (productos[indice].precio <= 0);
+
+    crearBackup();
+    guardarArchivo();
+
+    printf("\nProducto actualizado correctamente.\n");
+    pausa();
+}
+
+void eliminarProducto() {
+    encabezado("ELIMINAR PRODUCTO");
+
+    if (totalProductos == 0) {
+        printf("No existen productos registrados.\n");
+        pausa();
+        return;
+    }
+
+    int codigo;
+    int i;
+    int j;
+    char opcion;
+
+    printf("Ingrese el codigo del producto: ");
+    scanf("%d", &codigo);
+
+    i = buscarIndice(codigo);
+    if (i == -1) {
+        printf("\nProducto no encontrado.\n");
+        pausa();
+        return;
+    }
+
+    printf("\nProducto encontrado.\n");
+    printf("Codigo : %d\n", productos[i].codigo);
+    printf("Nombre : %s\n", productos[i].nombre);
+
+    printf("\nDesea eliminarlo? (S/N): ");
+    scanf(" %c", &opcion);
+
+    if (opcion == 'S' || opcion == 's') {
+        for (j = i; j < totalProductos - 1; j++) {
+            productos[j] = productos[j + 1];
+        }
+
+        totalProductos--;
+        crearBackup();
+        guardarArchivo();
+        printf("\nProducto eliminado correctamente.\n");
+    } else {
+        printf("\nOperacion cancelada.\n");
+    }
+
+    pausa();
+}
+
+void venderProducto() {
+    encabezado("VENTA DE PRODUCTOS");
+
+    if (totalProductos == 0) {
+        printf("No existen productos registrados.\n");
+        pausa();
+        return;
+    }
+
+    int codigo;
+    int cantidad;
+    int indice;
+    float total;
+
+    printf("Codigo del producto: ");
+    scanf("%d", &codigo);
+
+    indice = buscarIndice(codigo);
+    if (indice == -1) {
+        printf("\nProducto no encontrado.\n");
+        pausa();
+        return;
+    }
+
+    printf("\nProducto: %s\n", productos[indice].nombre);
+    printf("Stock disponible: %d\n", productos[indice].cantidad);
+    printf("Precio unitario: $%.2f\n", productos[indice].precio);
+
+    printf("\nCantidad a vender: ");
+    scanf("%d", &cantidad);
+
+    if (cantidad <= 0) {
+        printf("\nCantidad invalida.\n");
+        pausa();
+        return;
+    }
+
+    if (cantidad > productos[indice].cantidad) {
+        printf("\nStock insuficiente.\n");
+        pausa();
+        return;
+    }
+
+    productos[indice].cantidad -= cantidad;
+    productos[indice].vendidos += cantidad;
+    total = cantidad * productos[indice].precio;
+
+    crearBackup();
+    guardarArchivo();
+
+    printf("\n=============================\n");
+    printf("VENTA REALIZADA\n");
+    printf("=============================\n");
+    printf("Producto : %s\n", productos[indice].nombre);
+    printf("Cantidad : %d\n", cantidad);
+    printf("Total    : $%.2f\n", total);
+    printf("Stock restante : %d\n", productos[indice].cantidad);
+
+    if (productos[indice].cantidad < 10) {
+        printf("\n*** ALERTA: STOCK BAJO ***\n");
+    }
+
+    pausa();
+}
+
+void reporteInventario() {
+    encabezado("REPORTE GENERAL DEL INVENTARIO");
+
+    if (totalProductos == 0) {
+        printf("No existen productos registrados.\n");
+        pausa();
+        return;
+    }
+
+    int i;
+    int totalUnidades = 0;
+    int mayorStock = 0;
+    int menorStock = 0;
+    int masCaro = 0;
+    int masBarato = 0;
+    float valorInventario = 0;
+
+    for (i = 0; i < totalProductos; i++) {
+        totalUnidades += productos[i].cantidad;
+        valorInventario += productos[i].cantidad * productos[i].precio;
+
+        if (productos[i].cantidad > productos[mayorStock].cantidad) {
+            mayorStock = i;
+        }
+
+        if (productos[i].cantidad < productos[menorStock].cantidad) {
+            menorStock = i;
+        }
+
+        if (productos[i].precio > productos[masCaro].precio) {
+            masCaro = i;
+        }
+
+        if (productos[i].precio < productos[masBarato].precio) {
+            masBarato = i;
+        }
+    }
+
+    printf("Productos registrados : %d\n", totalProductos);
+    printf("Total de unidades     : %d\n", totalUnidades);
+    printf("Valor del inventario  : $%.2f\n", valorInventario);
+
+    if (totalUnidades > 0) {
+        printf("Promedio de precio    : $%.2f\n", valorInventario / totalUnidades);
+    }
+
+    printf("\n=========================================\n");
+    printf("Producto mas caro\n");
+    printf("%s ($%.2f)\n", productos[masCaro].nombre, productos[masCaro].precio);
+    printf("\nProducto mas barato\n");
+    printf("%s ($%.2f)\n", productos[masBarato].nombre, productos[masBarato].precio);
+    printf("\nMayor stock\n");
+    printf("%s (%d unidades)\n", productos[mayorStock].nombre, productos[mayorStock].cantidad);
+    printf("\nMenor stock\n");
+    printf("%s (%d unidades)\n", productos[menorStock].nombre, productos[menorStock].cantidad);
+
+    pausa();
+}
+
+void ordenarCodigo() {
+    int i;
+    int j;
+    Producto aux;
+
+    for (i = 0; i < totalProductos - 1; i++) {
+        for (j = i + 1; j < totalProductos; j++) {
+            if (productos[i].codigo > productos[j].codigo) {
+                aux = productos[i];
+                productos[i] = productos[j];
+                productos[j] = aux;
+            }
+        }
+    }
+}
+
+void ordenarNombre() {
+    int i;
+    int j;
+    Producto aux;
+
+    for (i = 0; i < totalProductos - 1; i++) {
+        for (j = i + 1; j < totalProductos; j++) {
+            if (strcmp(productos[i].nombre, productos[j].nombre) > 0) {
+                aux = productos[i];
+                productos[i] = productos[j];
+                productos[j] = aux;
+            }
+        }
+    }
+}
+
+void ordenarPrecio() {
+    int i;
+    int j;
+    Producto aux;
+
+    for (i = 0; i < totalProductos - 1; i++) {
+        for (j = i + 1; j < totalProductos; j++) {
+            if (productos[i].precio > productos[j].precio) {
+                aux = productos[i];
+                productos[i] = productos[j];
+                productos[j] = aux;
+            }
+        }
+    }
+}
+
+void mostrarStockBajo() {
+    encabezado("PRODUCTOS CON STOCK BAJO");
+
+    int i;
+    int encontrado = 0;
+
+    for (i = 0; i < totalProductos; i++) {
+        if (productos[i].cantidad < 10) {
+            encontrado = 1;
+            printf("%d - %s - Stock: %d\n",
+                   productos[i].codigo,
+                   productos[i].nombre,
+                   productos[i].cantidad);
+        }
+    }
+
+    if (!encontrado) {
+        printf("No existen productos con stock bajo.\n");
+    }
+
+    pausa();
+}
+
+void productoMasVendido() {
+    encabezado("PRODUCTO MAS VENDIDO");
+
+    if (totalProductos == 0) {
+        printf("No existen productos registrados.\n");
+        pausa();
+        return;
+    }
+
+    int mayor = 0;
+    int i;
+
+    for (i = 1; i < totalProductos; i++) {
+        if (productos[i].vendidos > productos[mayor].vendidos) {
+            mayor = i;
+        }
+    }
+
+    printf("Producto : %s\n", productos[mayor].nombre);
+    printf("Vendidos : %d unidades\n", productos[mayor].vendidos);
+
+    pausa();
+}
+
+void exportarReporte() {
+    FILE *archivo;
+    int i;
+    float total = 0;
+
+    archivo = fopen("reporte.txt", "w");
+    if (archivo == NULL) {
+        printf("No fue posible crear el reporte.\n");
+        pausa();
+        return;
+    }
+
+    fprintf(archivo, "REPORTE GENERAL DEL INVENTARIO\n\n");
+    fprintf(archivo, "-------------------------------------------------------------------------------\n");
+    fprintf(archivo, "%-8s %-25s %-10s %-10s %-10s\n",
+            "CODIGO", "NOMBRE", "CANTIDAD", "PRECIO", "VENDIDOS");
+    fprintf(archivo, "-------------------------------------------------------------------------------\n");
+
+    for (i = 0; i < totalProductos; i++) {
+        fprintf(archivo,
+                "%-8d %-25s %-10d $%-10.2f %-10d\n",
+                productos[i].codigo,
+                productos[i].nombre,
+                productos[i].cantidad,
+                productos[i].precio,
+                productos[i].vendidos);
+
+        total += productos[i].cantidad * productos[i].precio;
+    }
+
+    fprintf(archivo, "\nValor total del inventario: %.2f\n", total);
+    fclose(archivo);
+
+    printf("\nReporte generado correctamente.\n");
+    pausa();
+}
+
+void informacionSistema() {
+    encabezado("INFORMACION DEL SISTEMA");
+
+    printf("Sistema de Inventario para Embotelladora\n\n");
+    printf("Version : 2.0\n");
+    printf("Productos registrados : %d\n", contarProductos());
+    printf("Capacidad maxima : %d\n", MAX);
+    printf("Archivo principal : productos.txt\n");
+    printf("Archivo respaldo : backup_productos.txt\n");
+
+    pausa();
+}
+
+void guardarArchivo() {
+    FILE *archivo;
+    int i;
+
+    archivo = fopen("productos.txt", "w");
+    if (archivo == NULL) {
+        printf("Error al guardar el archivo.\n");
+        return;
+    }
+
+    for (i = 0; i < totalProductos; i++) {
+        fprintf(archivo,
+                "%d,%s,%d,%s,%.2f,%d\n",
+                productos[i].codigo,
+                productos[i].nombre,
+                productos[i].cantidad,
+                productos[i].lote,
+                productos[i].precio,
+                productos[i].vendidos);
+    }
+
+    fclose(archivo);
+}
+
+void cargarArchivo() {
+    FILE *archivo;
+
+    archivo = fopen("productos.txt", "r");
+    if (archivo == NULL) {
+        return;
+    }
+
+    totalProductos = 0;
+
+    while (totalProductos < MAX &&
+           fscanf(archivo,
+                  "%d,%49[^,],%d,%19[^,],%f,%d\n",
+                  &productos[totalProductos].codigo,
+                  productos[totalProductos].nombre,
+                  &productos[totalProductos].cantidad,
+                  productos[totalProductos].lote,
+                  &productos[totalProductos].precio,
+                  &productos[totalProductos].vendidos) == 6) {
+        totalProductos++;
+    }
+
+    fclose(archivo);
+}
+
+void crearBackup() {
+    FILE *origen;
+    FILE *destino;
+    int c;
+
+    origen = fopen("productos.txt", "r");
+    if (origen == NULL) {
+        return;
+    }
+
+    destino = fopen("backup_productos.txt", "w");
+    if (destino == NULL) {
+        fclose(origen);
+        return;
+    }
+
+    while ((c = fgetc(origen)) != EOF) {
+        fputc(c, destino);
+    }
+
+    fclose(origen);
+    fclose(destino);
+}
